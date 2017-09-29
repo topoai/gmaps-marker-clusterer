@@ -237,6 +237,11 @@ function MarkerClusterer(map, opt_markers, opt_options) {
      */
     this.onRemoveCluster_ = options['onRemoveCluster'];
 
+    /**
+     * The icon to use when we need to higlight a cluster
+     */
+    this.clusterHiglightIcon = options['clusterHighlightIcon'];
+
     this.setupStyles_();
 
     this.setMap(map);
@@ -1131,6 +1136,9 @@ Cluster.prototype.updateIcon = function() {
     var sums = this.markerClusterer_.getCalculator()(this.markers_, numStyles);
     this.clusterIcon_.setCenter(this.center_);
     this.clusterIcon_.setSums(sums);
+    if (this.markers_.some(function(m) { return m.highlighted; })) {
+        this.clusterIcon_.highlight(this.markerClusterer_.clusterHiglightIcon);
+    }
     this.clusterIcon_.show();
 };
 
@@ -1166,6 +1174,23 @@ function ClusterIcon(cluster, styles, opt_padding) {
 
     this.setMap(this.map_);
 }
+
+ClusterIcon.prototype.highlight = function(highlightIcon) {
+    if (!highlightIcon) {
+        return;
+    }
+    
+    if (this.div_) {
+        this.div_.appendChild(highlightIcon);
+    }
+};
+
+ClusterIcon.prototype.unhighlight = function(highlightIcon) {
+    if (!highlightIcon) {
+        return;
+    }
+    highlightIcon.parentNode.removeChild(highlightIcon);
+};
 
 /**
  * Triggers the clusterclick event and zoom's if the option is set.
