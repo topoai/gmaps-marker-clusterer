@@ -119,7 +119,7 @@ function MarkerClusterer(map, opt_markers, opt_options) {
      * @private
      * @type {string} Set a default Cluster Class
      */
-    this.cssDefaultClass_ = 'cluster';
+    this.cssDefaultClass_ = 'custom-cluster-container cluster';
 
     /**
      * @private
@@ -1179,6 +1179,7 @@ ClusterIcon.prototype.highlight = function(highlightIcon) {
     if (!highlightIcon) {
         return;
     }
+    this.highlighted = highlightIcon.cloneNode();
     
     if (this.div_) {
         this.div_.appendChild(highlightIcon);
@@ -1190,6 +1191,7 @@ ClusterIcon.prototype.unhighlight = function(highlightIcon) {
         return;
     }
     highlightIcon.parentNode.removeChild(highlightIcon);
+    this.highlighted = null;
 };
 
 /**
@@ -1258,10 +1260,15 @@ ClusterIcon.prototype.onAdd = function () {
  */
 function defaultClusterOnAdd(clusterIcon) {
     clusterIcon.div_ = document.createElement('DIV');
+    clusterIcon.clusterDiv_ = document.createElement('DIV');
     if (clusterIcon.visible_) {
         var pos = clusterIcon.getPosFromLatLng_(clusterIcon.center_);
         clusterIcon.div_.style.cssText = clusterIcon.createCss(pos);
-        clusterIcon.div_.innerHTML = clusterIcon.sums_.text;
+        clusterIcon.div_.appendChild(clusterIcon.clusterDiv_);
+        clusterIcon.clusterDiv_.innerHTML = clusterIcon.sums_.text;
+        if (clusterIcon.highlighted) {
+            clusterIcon.div_.appendChild(clusterIcon.highlighted);
+        }
         clusterIcon.addClass();
     }
 
@@ -1496,6 +1503,7 @@ ClusterIcon.prototype.createCss = function(pos) {
     var style = [];
     var markerClusterer = this.cluster_.getMarkerClusterer();
 
+    // TODO: I don't want to apply these styles to the wrapper, just the position
     if (!markerClusterer.cssClass_) {
         style.push('background-image:url(' + this.url_ + ');');
         var backgroundPosition = this.backgroundPosition_ ? this.backgroundPosition_ : '0 0';
@@ -1547,10 +1555,14 @@ ClusterIcon.prototype.createCss = function(pos) {
 ClusterIcon.prototype.addClass = function() {
     var markerClusterer = this.cluster_.getMarkerClusterer();
 
+    this.div_.className = markerClusterer.cssDefaultClass_ + this.setIndex_;
+
     if (markerClusterer.cssClass_) {
-        this.div_.className = markerClusterer.cssClass_ + ' ' + markerClusterer.cssDefaultClass_ + this.setIndex_;
-    } else {
-        this.div_.className = markerClusterer.cssDefaultClass_ + this.setIndex_;
+        this.clusterDiv_.className = markerClusterer.cssClass_;
+    }
+
+    if (this.highlighted) {
+        this.div_.className += ' highlighted';
     }
 }
 
