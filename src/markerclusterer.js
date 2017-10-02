@@ -1142,6 +1142,13 @@ Cluster.prototype.updateIcon = function() {
     this.clusterIcon_.show();
 };
 
+Cluster.prototype.redraw = function() {
+    this.clusterIcon_.setMap(null);
+    this.clusterIcon_ = new ClusterIcon(this, this.markerClusterer_.getStyles(),
+    this.markerClusterer_.getGridSize());
+    this.updateIcon();
+};
+
 
 /**
  * A cluster icon
