@@ -119,7 +119,7 @@ function MarkerClusterer(map, opt_markers, opt_options) {
      * @private
      * @type {string} Set a default Cluster Class
      */
-    this.cssDefaultClass_ = 'cluster';
+    this.cssDefaultClass_ = 'custom-cluster-container cluster';
 
     /**
      * @private
@@ -236,6 +236,11 @@ function MarkerClusterer(map, opt_markers, opt_options) {
      * @private
      */
     this.onRemoveCluster_ = options['onRemoveCluster'];
+
+    /**
+     * The icon to use when we need to higlight a cluster
+     */
+    this.clusterHiglightIcon = options['clusterHighlightIcon'];
 
     this.setupStyles_();
 
@@ -1131,7 +1136,17 @@ Cluster.prototype.updateIcon = function() {
     var sums = this.markerClusterer_.getCalculator()(this.markers_, numStyles);
     this.clusterIcon_.setCenter(this.center_);
     this.clusterIcon_.setSums(sums);
+    if (this.markers_.some(function(m) { return m.highlighted; })) {
+        this.clusterIcon_.highlight(this.markerClusterer_.clusterHiglightIcon);
+    }
     this.clusterIcon_.show();
+};
+
+Cluster.prototype.redraw = function() {
+    this.clusterIcon_.setMap(null);
+    this.clusterIcon_ = new ClusterIcon(this, this.markerClusterer_.getStyles(),
+    this.markerClusterer_.getGridSize());
+    this.updateIcon();
 };
 
 
@@ -1166,6 +1181,25 @@ function ClusterIcon(cluster, styles, opt_padding) {
 
     this.setMap(this.map_);
 }
+
+ClusterIcon.prototype.highlight = function(highlightIcon) {
+    if (!highlightIcon) {
+        return;
+    }
+    this.highlighted = highlightIcon.cloneNode();
+    
+    if (this.div_) {
+        this.div_.appendChild(highlightIcon);
+    }
+};
+
+ClusterIcon.prototype.unhighlight = function(highlightIcon) {
+    if (!highlightIcon) {
+        return;
+    }
+    highlightIcon.parentNode.removeChild(highlightIcon);
+    this.highlighted = null;
+};
 
 /**
  * Triggers the clusterclick event and zoom's if the option is set.
@@ -1233,10 +1267,15 @@ ClusterIcon.prototype.onAdd = function () {
  */
 function defaultClusterOnAdd(clusterIcon) {
     clusterIcon.div_ = document.createElement('DIV');
+    clusterIcon.clusterDiv_ = document.createElement('DIV');
     if (clusterIcon.visible_) {
         var pos = clusterIcon.getPosFromLatLng_(clusterIcon.center_);
         clusterIcon.div_.style.cssText = clusterIcon.createCss(pos);
-        clusterIcon.div_.innerHTML = clusterIcon.sums_.text;
+        clusterIcon.div_.appendChild(clusterIcon.clusterDiv_);
+        clusterIcon.clusterDiv_.innerHTML = clusterIcon.sums_.text;
+        if (clusterIcon.highlighted) {
+            clusterIcon.div_.appendChild(clusterIcon.highlighted);
+        }
         clusterIcon.addClass();
     }
 
@@ -1471,6 +1510,7 @@ ClusterIcon.prototype.createCss = function(pos) {
     var style = [];
     var markerClusterer = this.cluster_.getMarkerClusterer();
 
+    // TODO: I don't want to apply these styles to the wrapper, just the position
     if (!markerClusterer.cssClass_) {
         style.push('background-image:url(' + this.url_ + ');');
         var backgroundPosition = this.backgroundPosition_ ? this.backgroundPosition_ : '0 0';
@@ -1522,10 +1562,14 @@ ClusterIcon.prototype.createCss = function(pos) {
 ClusterIcon.prototype.addClass = function() {
     var markerClusterer = this.cluster_.getMarkerClusterer();
 
+    this.div_.className = markerClusterer.cssDefaultClass_ + this.setIndex_;
+
     if (markerClusterer.cssClass_) {
-        this.div_.className = markerClusterer.cssClass_ + ' ' + markerClusterer.cssDefaultClass_ + this.setIndex_;
-    } else {
-        this.div_.className = markerClusterer.cssDefaultClass_ + this.setIndex_;
+        this.clusterDiv_.className = markerClusterer.cssClass_;
+    }
+
+    if (this.highlighted) {
+        this.div_.className += ' highlighted';
     }
 }
 
