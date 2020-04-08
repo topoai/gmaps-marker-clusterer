@@ -160,6 +160,7 @@ function MarkerClusterer(map, opt_markers, opt_options) {
     this.styles_ = options['styles'] || [];
 
     this.cssClass_ = options['cssClass'] || null;
+    this.cssClassHighlighted_ = options['cssClassHighlighted'] || null;
 
     /**
      * @type {string}
@@ -946,6 +947,70 @@ function Cluster(markerClusterer) {
 }
 
 /**
+ * Determins if a marker is in the cluster and unhighlights it.
+ *
+ * @param {google.maps.Marker} marker The marker to unhighlight for.
+ * @return {boolean} True if the marker was found and unhighlighted.
+ */
+Cluster.prototype.unhighlight = function(marker) {
+    let markerFound = false;
+    if (this.markers_.indexOf) {
+      markerFound = this.markers_.indexOf(marker) != -1;
+    } else {
+        for (var i = 0, m; m = this.markers_[i]; i++) {
+            if (m == marker) {
+              markerFound = true;
+              break;
+            }
+        }
+    }
+    if (markerFound) {
+      if (marker.unhighlight) {
+        marker.unhighlight();
+      }
+      if (this.clusterIcon_.highlighted) {
+        // Highlight icon for this cluster
+        this.clusterIcon_.unhighlight();
+        this.redraw();
+      }
+      return true;
+    }
+    return false;
+};
+
+/**
+ * Determins if a marker is in the cluster and highlights it.
+ *
+ * @param {google.maps.Marker} marker The marker to highlight for.
+ * @return {boolean} True if the marker was found and highlighted.
+ */
+Cluster.prototype.highlight = function(marker) {
+    let markerFound = false;
+    if (this.markers_.indexOf) {
+      markerFound = this.markers_.indexOf(marker) != -1;
+    } else {
+        for (var i = 0, m; m = this.markers_[i]; i++) {
+            if (m == marker) {
+              markerFound = true;
+              break;
+            }
+        }
+    }
+    if (markerFound) {
+      if (marker.highlight) {
+        marker.highlight();
+      }
+      if (!this.clusterIcon_.highlighted) {
+        // Highlight icon for this cluster
+        this.clusterIcon_.highlight(this.clusterIcon_.highlightIcon);
+        this.redraw();
+      }
+      return true;
+    }
+    return false;
+};
+
+/**
  * Determins if a marker is already added to the cluster.
  *
  * @param {google.maps.Marker} marker The marker to check.
@@ -1136,9 +1201,6 @@ Cluster.prototype.updateIcon = function() {
     var sums = this.markerClusterer_.getCalculator()(this.markers_, numStyles);
     this.clusterIcon_.setCenter(this.center_);
     this.clusterIcon_.setSums(sums);
-    if (this.markers_.some(function(m) { return m.highlighted; })) {
-        this.clusterIcon_.highlight(this.markerClusterer_.clusterHiglightIcon);
-    }
     this.clusterIcon_.show();
 };
 
@@ -1178,27 +1240,31 @@ function ClusterIcon(cluster, styles, opt_padding) {
     this.div_ = null;
     this.sums_ = null;
     this.visible_ = false;
+    this.highlighted = false;
+    this.highlightedIcon = null;
 
     this.setMap(this.map_);
 }
 
 ClusterIcon.prototype.highlight = function(highlightIcon) {
+    this.highlighted = true;
     if (!highlightIcon) {
         return;
     }
-    this.highlighted = highlightIcon.cloneNode();
+    this.highlightedIcon = highlightIcon.cloneNode();
     
     if (this.div_) {
-        this.div_.appendChild(highlightIcon);
+        this.div_.appendChild(this.highlightedIcon);
     }
 };
 
-ClusterIcon.prototype.unhighlight = function(highlightIcon) {
-    if (!highlightIcon) {
+ClusterIcon.prototype.unhighlight = function() {
+  this.highlighted = false;
+    if (!this.highlightedIcon) {
         return;
     }
-    highlightIcon.parentNode.removeChild(highlightIcon);
-    this.highlighted = null;
+    highlightIcon.parentNode.removeChild(this.highlightedIcon);
+    this.highlightedIcon = null;
 };
 
 /**
@@ -1273,8 +1339,8 @@ function defaultClusterOnAdd(clusterIcon) {
         clusterIcon.div_.style.cssText = clusterIcon.createCss(pos);
         clusterIcon.div_.appendChild(clusterIcon.clusterDiv_);
         clusterIcon.clusterDiv_.innerHTML = clusterIcon.sums_.text;
-        if (clusterIcon.highlighted) {
-            clusterIcon.div_.appendChild(clusterIcon.highlighted);
+        if (clusterIcon.highlighted && clusterIcon.highlightedIcon) {
+            clusterIcon.div_.appendChild(clusterIcon.highlightedIcon);
         }
         clusterIcon.addClass();
     }
@@ -1568,7 +1634,11 @@ ClusterIcon.prototype.addClass = function() {
         this.clusterDiv_.className = markerClusterer.cssClass_;
     }
 
-    if (this.highlighted) {
+    const highlighted = this.cluster_.markers_.some(function(m) { return m.highlighted; });
+
+    if (highlighted && this.cssClassHighlighted_) {
+        this.clusterDiv_.className = markerClusterer.cssClassHighlighted_;
+    } else if (highlighted) {
         this.div_.className += ' highlighted';
     }
 }
