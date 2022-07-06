@@ -1339,39 +1339,34 @@ function defaultClusterOnAdd(clusterIcon) {
   var isDragging = false;
   var isMouseDown = false;
 
-  google.maps.event.addListener(clusterIcon.div_, "click", function (event) {
-    // Only perform click when not preceded by a drag
+  clusterIcon.div_.addEventListener("click", (e) => {
     if (!isDragging) {
-      clusterIcon.triggerClusterClick(event);
+      clusterIcon.triggerClusterClick(e);
     }
   });
 
-  google.maps.event.addListener(clusterIcon.div_, "mousedown", function () {
+  clusterIcon.div_.addEventListener("mousedown", (e) => {
     isDragging = false;
     isMouseDown = true;
   });
 
-  google.maps.event.addListener(clusterIcon.div_, "mouseup", function () {
+  clusterIcon.div_.addEventListener("mouseup", (e) => {
     isDragging = false;
     isMouseDown = false;
   });
 
-  google.maps.event.addListener(clusterIcon.div_, "mousemove", function () {
+  clusterIcon.div_.addEventListener("mousemove", (e) => {
     if (isMouseDown) {
       isDragging = true;
     }
   });
 
-  google.maps.event.addListener(
-    clusterIcon.div_,
-    "mouseover",
-    function (event) {
-      clusterIcon.triggerClusterMouseover(event);
-    }
-  );
+  clusterIcon.div_.addEventListener("mouseover", (e) => {
+    clusterIcon.triggerClusterMouseover(e);
+  });
 
-  google.maps.event.addListener(clusterIcon.div_, "mouseout", function (event) {
-    clusterIcon.triggerClusterMouseout(event);
+  clusterIcon.div_.addEventListener("mouseout", (e) => {
+    clusterIcon.triggerClusterMouseout(e);
   });
 }
 
